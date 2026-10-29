@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>チューリップ何切る</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@700&display=swap">
+<style>
+/* Layout: 左に牌入力、右に打牌ごとの結果表。狭い画面では縦積み。 */
+:root {
+  --bg: #e9efed;
+  --surface: #ffffff;
+  --surface-2: #f1f5f4;
+  --ink: #12201d;
+  --ink-2: #4a5d58;
+  --line: #cbd8d4;
+  --accent: #c2255c;      /* チューリップ */
+  --accent-soft: #fbe3ec;
+  --felt: #1f5a49;        /* 卓の緑 */
+  --felt-soft: #d7ebe3;
+  --tile: #fbfaf4;
+  --tile-edge: #b9b7a8;
+  --c-m: #b3261e;
+  --c-p: #1d4f9c;
+  --c-s: #1b7a3d;
+  --c-r: #c62828;
+  --c-g: #1b7a3d;
+  --c-w: #12201d;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1816; --surface: #14231f; --surface-2: #1b2d28; --ink: #e6f0ed; --ink-2: #9db3ac;
+    --line: #2b413b; --accent: #f06595; --accent-soft: #3a1b29; --felt: #5fbf9f; --felt-soft: #1d3a31;
+    --tile: #ecebe0; --tile-edge: #7d7b6c;
+    --c-m: #c9322a; --c-p: #2a62b8; --c-s: #1b7a3d; --c-r: #c62828; --c-g: #1b7a3d; --c-w: #1c2a27;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1816; --surface: #14231f; --surface-2: #1b2d28; --ink: #e6f0ed; --ink-2: #9db3ac;
+  --line: #2b413b; --accent: #f06595; --accent-soft: #3a1b29; --felt: #5fbf9f; --felt-soft: #1d3a31;
+  --tile: #ecebe0; --tile-edge: #7d7b6c;
+  --c-m: #c9322a; --c-p: #2a62b8; --c-s: #1b7a3d; --c-r: #c62828; --c-g: #1b7a3d; --c-w: #1c2a27;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+header h1 { font-family: var(--font-display); font-size: clamp(26px, 5vw, 36px); margin: 0; line-height: 1.2; letter-spacing: .02em; text-wrap: balance; }
+header h1 span { color: var(--accent); }
+header p { margin: 6px 0 0; color: var(--ink-2); max-width: 62ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel h2 { font-size: 13px; letter-spacing: .08em; color: var(--ink-2); margin: 0; font-weight: 700; }
+
+.modes { display: flex; gap: 6px; flex-wrap: wrap; }
+.modes button {
+  font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--ink); cursor: pointer;
+}
+.modes button[aria-pressed="true"] { background: var(--felt); color: #fff; border-color: var(--felt); }
+:root[data-theme="dark"] .modes button[aria-pressed="true"] { color: #0d1816; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .modes button[aria-pressed="true"] { color: #0d1816; } }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.tile {
+  appearance: none; font: inherit; cursor: pointer; position: relative;
+  width: 34px; height: 46px; padding: 0; border-radius: 5px;
+  background: var(--tile); border: 1px solid var(--tile-edge); border-bottom-width: 3px;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+  color: var(--c-w); font-weight: 700;
+}
+.tile .n { font-size: 19px; font-family: var(--font-display); }
+.tile .s { font-size: 11px; margin-top: 2px; font-weight: 500; }
+.tile.k-m { color: var(--c-m); } .tile.k-p { color: var(--c-p); } .tile.k-s { color: var(--c-s); }
+.tile.k-r { color: var(--c-r); } .tile.k-g { color: var(--c-g); } .tile.k-z, .tile.k-w { color: var(--c-w); }
+.tile.k-z .n, .tile.k-w .n, .tile.k-r .n, .tile.k-g .n { font-size: 21px; }
+.tile.k-w .n { font-size: 21px; }
+.tile.dis { opacity: .3; cursor: not-allowed; }
+.tile .left { position: absolute; top: -7px; right: -5px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 10px; display: none; align-items: center; justify-content: center; font-family: var(--font-body); }
+.tile.mini { width: 24px; height: 32px; border-bottom-width: 2px; cursor: default; }
+.tile.mini .n { font-size: 14px; } .tile.mini .s { font-size: 8px; margin-top: 1px; }
+.tile.mini.k-z .n, .tile.mini.k-w .n, .tile.mini.k-r .n, .tile.mini.k-g .n { font-size: 15px; }
+
+.palette { display: flex; flex-direction: column; gap: 8px; }
+.prow { display: flex; flex-wrap: wrap; gap: 5px; }
+.area { display: flex; flex-direction: column; gap: 8px; }
+.area-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.area-head h3 { margin: 0; font-size: 14px; font-weight: 700; }
+.count { color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.count.ok { color: var(--felt); font-weight: 700; }
+.tiles { display: flex; flex-wrap: wrap; gap: 4px; min-height: 52px; padding: 8px; background: var(--felt-soft); border-radius: 8px; align-items: center; }
+.tiles .empty { color: var(--ink-2); font-size: 13px; }
+.tiles.hand { }
+.mini-btn { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 6px; cursor: pointer; }
+.stepper { display: inline-flex; align-items: center; gap: 8px; }
+.stepper button { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: 16px; cursor: pointer; }
+.stepper output { min-width: 1.5em; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.row-split { display: flex; flex-wrap: wrap; gap: 14px 24px; }
+
+.verdict { padding: 12px 14px; border-radius: 8px; background: var(--surface-2); color: var(--ink-2); }
+.verdict.agari { background: var(--accent-soft); color: var(--ink); }
+.verdict strong { color: var(--accent); }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.toolbar label { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+.toolbar select { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 760px; }
+th { text-align: left; font-size: 12px; letter-spacing: .06em; color: var(--ink-2); font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.num { text-align: right; white-space: nowrap; }
+tr.best-eff td:first-child { box-shadow: inset 3px 0 0 var(--felt); }
+tr.best-chip td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+tr.best-eff.best-chip td:first-child { box-shadow: inset 3px 0 0 var(--accent), inset 6px 0 0 var(--felt); }
+.badges { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.badge { font-size: 11px; padding: 1px 7px; border-radius: 999px; font-weight: 700; white-space: nowrap; }
+.badge.eff { background: var(--felt-soft); color: var(--felt); }
+.badge.chip { background: var(--accent-soft); color: var(--accent); }
+.uke { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.uke-item { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: var(--ink-2); }
+.shn { font-weight: 700; }
+.chipbar { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); vertical-align: middle; margin-left: 6px; }
+.simbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; }
+.simbar label { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+.simbar input, .simbar select { font: inherit; font-size: 13px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.simbar input[type="number"] { width: 4.2em; }
+.primary { font: inherit; font-size: 13px; font-weight: 700; padding: 7px 14px; border-radius: 6px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+:root[data-theme="dark"] .primary { color: #1a0a11; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .primary { color: #1a0a11; } }
+.badge.tot { background: var(--ink); color: var(--bg); }
+.simnote { color: var(--ink-2); font-size: 12px; }
+details { font-size: 13px; color: var(--ink-2); }
+details summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+details ul { margin: 8px 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+html { color-scheme: light dark; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>チューリップ<span>何切る</span></h1>
+    <p>三麻のメンゼン手で、牌効率とチューリップ（めくりチップ）の期待値を打牌ごとに並べて比べます。</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="牌の入力">
+      <h2>入力</h2>
+      <div class="modes" role="group" aria-label="入力先">
+        <button type="button" id="m-hand" aria-pressed="true">手牌（14枚）</button>
+        <button type="button" id="m-dora" aria-pressed="false">ドラ表示牌</button>
+        <button type="button" id="m-vis" aria-pressed="false">見えている牌</button>
+      </div>
+      <div class="palette" id="palette"></div>
+
+      <div class="area">
+        <div class="area-head"><h3>手牌</h3><span class="count" id="handCount"></span><button type="button" class="mini-btn" id="clearHand">手牌を空にする</button></div>
+        <div class="tiles hand" id="handTiles"></div>
+      </div>
+      <div class="row-split">
+        <div class="area">
+          <div class="area-head"><h3>ドラ表示牌</h3></div>
+          <div class="tiles" id="doraTiles"></div>
+        </div>
+        <div class="area">
+          <div class="area-head"><h3>抜き北</h3></div>
+          <div class="stepper"><button type="button" id="nukiMinus" aria-label="抜き北を減らす">−</button><output id="nukiOut">0</output><button type="button" id="nukiPlus" aria-label="抜き北を増やす">＋</button><span class="count">枚（手牌と同様にめくり判定へ数えます）</span></div>
+        </div>
+      </div>
+      <div class="area">
+        <div class="area-head"><h3>見えている牌</h3><span class="count">捨て牌・他家の抜き北など</span><button type="button" class="mini-btn" id="clearVis">空にする</button></div>
+        <div class="tiles" id="visTiles"></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="結果">
+      <h2>何を切る？</h2>
+      <div id="verdict" class="verdict"></div>
+      <div class="simbar">
+        <label>残りツモ <input type="number" id="turns" min="1" max="18" value="8" inputmode="numeric"> 回</label>
+        <label>試行 <select id="trials"><option value="500">500回</option><option value="1000" selected>1000回</option><option value="3000">3000回</option></select></label>
+        <button type="button" class="primary" id="runSim">和了率をシミュレーション</button>
+        <span class="count" id="simStatus">未実行。実行すると和了率と総合期待値の列が出ます。</span>
+      </div>
+      <div class="toolbar">
+        <label>並び順
+          <select id="sortSel">
+            <option value="eff">牌効率順（向聴数 → 受け入れ）</option>
+            <option value="chip">チップ期待値順</option>
+            <option value="tot">総合期待値順（要シミュレーション）</option>
+          </select>
+        </label>
+        <span class="count">緑の帯：牌効率最良　／　桃の帯：チップ期待値最良</span>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>切る牌</th><th>向聴</th><th>受け入れ</th><th>チップ期待値</th><th>和了率</th><th>和了時チップ</th><th>総合</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <details>
+        <summary>計算の前提</summary>
+        <ul>
+          <li>牌は三麻の108枚（萬子は1萬・9萬のみ）。通常形・七対子・国士無双の向聴数のうち一番小さいものを使います。</li>
+          <li>受け入れは、その牌を切った後に向聴数が進む牌の残り枚数です。残りは 4 − 手牌 − 見えている牌 − ドラ表示牌 − 抜き北 で数えます。</li>
+          <li>チップ期待値は、受け入れ牌をそれぞれ引いた後の手牌でめくりを行った場合の期待枚数を、受け入れ枚数で重み付けした平均です。聴牌になる切り方では、和了牌を引いた形そのものの値になります。</li>
+          <li>めくりは「該当牌が手牌にあれば、その枚数分のチップを得て続行、なければ終了」です。対象は表示牌の±1（1と9、東南西北は循環、三元牌は3種すべて）。1萬・9萬がめくれたときは、手牌の萬子1枚を2枚として数えます。</li>
+          <li>シミュレーションは、見えていない牌からランダムに引く試行を繰り返します。毎ツモで和了していなければ、向聴数が最小になる牌を切り（同じなら受け入れ枚数が多いほう）、残りツモ回数のうちにツモ和了できた割合を和了率とします。ロン・他家の和了・鳴き・リーチ判断・点数は入れていません。</li>
+          <li>総合は「ツモ和了したときのチップ枚数」を全試行で平均した値（和了率 × 和了時チップ）です。全部の切り方で同じツモ順を使って比べています。</li>
+          <li>各めくりは、場に見えていない牌から同じ確率で出る近似で計算しています。実際の山の並びとは少しずれます。</li>
+        </ul>
+      </details>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ===== Engine: 三麻 (萬子は1・9のみ) の向聴数・受け入れ・チューリップ期待値 ===== */
+// 牌インデックス: 0=1萬 1=9萬 2..10=1〜9筒 11..19=1〜9索 20..23=東南西北 24..26=白発中
+const NT = 27;
+const KITA = 23;
+const YAOCHU = [0, 1, 2, 10, 11, 19, 20, 21, 22, 23, 24, 25, 26];
+
+function tileLabel(i) {
+  if (i < 2) return { n: i === 0 ? '1' : '9', s: '萬', k: 'm' };
+  if (i <= 10) return { n: String(i - 1), s: '筒', k: 'p' };
+  if (i <= 19) return { n: String(i - 10), s: '索', k: 's' };
+  const z = ['東', '南', '西', '北', '白', '発', '中'];
+  return { n: z[i - 20], s: '', k: i >= 24 ? (i === 25 ? 'g' : i === 26 ? 'r' : 'w') : 'z' };
+}
+
+function shantenNormalSlow(c) {
+  let best = 8;
+  function rec(i, m, t, p) {
+    while (i < NT && c[i] === 0) i++;
+    if (i >= NT) {
+      const tt = Math.min(t, 4 - m);
+      const v = 8 - 2 * m - tt - p;
+      if (v < best) best = v;
+      return;
+    }
+    if (c[i] >= 3) { c[i] -= 3; rec(i, m + 1, t, p); c[i] += 3; }
+    if (c[i] >= 2) {
+      if (!p) { c[i] -= 2; rec(i, m, t, 1); c[i] += 2; }
+      c[i] -= 2; rec(i, m, t + 1, p); c[i] += 2;
+    }
+    const inP = i >= 2 && i <= 10, inS = i >= 11 && i <= 19;
+    if (inP || inS) {
+      const end = inP ? 10 : 19;
+      if (i + 2 <= end && c[i + 1] > 0 && c[i + 2] > 0) {
+        c[i]--; c[i + 1]--; c[i + 2]--; rec(i, m + 1, t, p); c[i]++; c[i + 1]++; c[i + 2]++;
+      }
+      if (i + 1 <= end && c[i + 1] > 0) { c[i]--; c[i + 1]--; rec(i, m, t + 1, p); c[i]++; c[i + 1]++; }
+      if (i + 2 <= end && c[i + 2] > 0) { c[i]--; c[i + 2]--; rec(i, m, t + 1, p); c[i]++; c[i + 2]++; }
+    }
+    c[i]--; rec(i, m, t, p); c[i]++;
+  }
+  rec(0, 0, 0, 0);
+  return best;
+}
+
+// ---- 高速版（牌種グループごとに結果をキャッシュ） ----
+const GROUPS = [
+  { from: 0, len: 2, seq: false, cache: new Map() },
+  { from: 2, len: 9, seq: true, cache: new Map() },
+  { from: 11, len: 9, seq: true, cache: new Map() },
+  { from: 20, len: 7, seq: false, cache: new Map() }
+];
+function calcGroup(a, L, seq) {
+  const f = new Int8Array(10).fill(-1);
+  function rec(i, m, t, p) {
+    while (i < L && a[i] === 0) i++;
+    if (i >= L) { const ix = m * 2 + p; if (t > f[ix]) f[ix] = t; return; }
+    if (a[i] >= 3 && m < 4) { a[i] -= 3; rec(i, m + 1, t, p); a[i] += 3; }
+    if (a[i] >= 2) {
+      if (!p) { a[i] -= 2; rec(i, m, t, 1); a[i] += 2; }
+      a[i] -= 2; rec(i, m, t + 1, p); a[i] += 2;
+    }
+    if (seq) {
+      if (i + 2 < L && a[i + 1] > 0 && a[i + 2] > 0 && m < 4) {
+        a[i]--; a[i + 1]--; a[i + 2]--; rec(i, m + 1, t, p); a[i]++; a[i + 1]++; a[i + 2]++;
+      }
+      if (i + 1 < L && a[i + 1] > 0) { a[i]--; a[i + 1]--; rec(i, m, t + 1, p); a[i]++; a[i + 1]++; }
+      if (i + 2 < L && a[i + 2] > 0) { a[i]--; a[i + 2]--; rec(i, m, t + 1, p); a[i]++; a[i + 2]++; }
+    }
+    a[i]--; rec(i, m, t, p); a[i]++;
+  }
+  rec(0, 0, 0, 0);
+  return f;
+}
+const _tmp = new Array(9).fill(0);
+function shantenNormal(c) {
+  let g = new Int8Array(10).fill(-1);
+  g[0] = 0;
+  for (const G of GROUPS) {
+    let key = 0;
+    for (let i = 0; i < G.len; i++) key = key * 5 + c[G.from + i];
+    let f = G.cache.get(key);
+    if (!f) {
+      for (let i = 0; i < G.len; i++) _tmp[i] = c[G.from + i];
+      f = calcGroup(_tmp, G.len, G.seq);
+      G.cache.set(key, f);
+    }
+    const g2 = new Int8Array(10).fill(-1);
+    for (let m1 = 0; m1 <= 4; m1++) for (let p1 = 0; p1 <= 1; p1++) {
+      const a = g[m1 * 2 + p1]; if (a < 0) continue;
+      for (let m2 = 0; m1 + m2 <= 4; m2++) for (let p2 = 0; p1 + p2 <= 1; p2++) {
+        const b = f[m2 * 2 + p2]; if (b < 0) continue;
+        const ix = (m1 + m2) * 2 + p1 + p2;
+        if (a + b > g2[ix]) g2[ix] = a + b;
+      }
+    }
+    g = g2;
+  }
+  let best = 8;
+  for (let M = 0; M <= 4; M++) for (let P = 0; P <= 1; P++) {
+    const T = g[M * 2 + P]; if (T < 0) continue;
+    const v = 8 - 2 * M - Math.min(T, 4 - M) - P;
+    if (v < best) best = v;
+  }
+  return best;
+}
+function shantenChiitoi(c) {
+  let pairs = 0, kinds = 0;
+  for (let i = 0; i < NT; i++) { if (c[i] >= 1) kinds++; if (c[i] >= 2) pairs++; }
+  let s = 6 - pairs;
+  if (kinds < 7) s += 7 - kinds;
+  return s;
+}
+function shantenKokushi(c) {
+  let kinds = 0, pair = 0;
+  for (const i of YAOCHU) { if (c[i] >= 1) kinds++; if (c[i] >= 2) pair = 1; }
+  return 13 - kinds - pair;
+}
+function shanten(c) {
+  return Math.min(shantenNormal(c), shantenChiitoi(c), shantenKokushi(c));
+}
+
+// めくれた牌 f に対する対象牌（±1、各グループ内で循環）
+function targets(f) {
+  if (f < 2) return [0, 1];
+  if (f <= 10) { const n = f - 2; return [2 + (n + 8) % 9, f, 2 + (n + 1) % 9]; }
+  if (f <= 19) { const n = f - 11; return [11 + (n + 8) % 9, f, 11 + (n + 1) % 9]; }
+  if (f <= 23) { const n = f - 20; return [20 + (n + 3) % 4, f, 20 + (n + 1) % 4]; }
+  return [24, 25, 26];
+}
+// hold: 手牌(抜き北込み)の枚数, remain: めくり対象の山に残りうる枚数
+// めくりは毎回独立（同じ確率）という近似で、継続しながらの期待チップ枚数を出す
+function tulip(hold, remain) {
+  let total = 0;
+  for (let i = 0; i < NT; i++) total += Math.max(0, remain[i]);
+  if (total <= 0) return { e: 0, p: 0 };
+  let S = 0, p = 0;
+  for (let f = 0; f < NT; f++) {
+    if (remain[f] <= 0) continue;
+    const pr = remain[f] / total;
+    let chips = 0;
+    for (const x of targets(f)) chips += hold[x] * ((f < 2 && x < 2) ? 2 : 1);
+    if (chips > 0) { S += pr * chips; p += pr; }
+  }
+  const q = Math.min(p, 0.95);
+  return { e: S / (1 - q), p };
+}
+
+function analyze(hand, vis, nuki) {
+  const remainBase = new Array(NT);
+  for (let i = 0; i < NT; i++) remainBase[i] = Math.max(0, 4 - hand[i] - vis[i] - (i === KITA ? nuki : 0));
+  const s14 = shanten(hand.slice());
+  const holdOf = (c) => { const h = c.slice(); h[KITA] += nuki; return h; };
+  const rows = [];
+  if (s14 === -1) {
+    const t = tulip(holdOf(hand), remainBase);
+    return { agari: true, s14, agariTulip: t, rows };
+  }
+  for (let d = 0; d < NT; d++) {
+    if (hand[d] === 0) continue;
+    const c = hand.slice(); c[d]--;
+    const s0 = shanten(c.slice());
+    const uke = [];
+    let total = 0, eSum = 0;
+    for (let t = 0; t < NT; t++) {
+      if (remainBase[t] <= 0) continue;
+      c[t]++;
+      if (shanten(c.slice()) < s0) {
+        uke.push({ t, n: remainBase[t] });
+        total += remainBase[t];
+        const rem = remainBase.slice(); rem[t]--;
+        eSum += remainBase[t] * tulip(holdOf(c), rem).e;
+      }
+      c[t]--;
+    }
+    rows.push({ d, s: s0, uke, total, e: total > 0 ? eSum / total : null });
+  }
+  return { agari: false, s14, rows };
+}
+
+
+// ---- モンテカルロ: 残りツモ回数のうちにツモ和了できる確率と、和了時のチップ ----
+function discardGreedy(c, rem) {
+  let bestS = 99; const cand = [];
+  for (let x = 0; x < NT; x++) {
+    if (c[x] === 0) continue;
+    c[x]--;
+    const s = shanten(c);
+    c[x]++;
+    if (s < bestS) { bestS = s; cand.length = 0; cand.push(x); }
+    else if (s === bestS) cand.push(x);
+  }
+  let pick = cand[0];
+  if (cand.length > 1) {
+    let bestScore = -1;
+    for (const x of cand) {
+      c[x]--;
+      let u = 0;
+      for (let t = 0; t < NT; t++) {
+        if (rem[t] <= 0) continue;
+        c[t]++;
+        if (shanten(c) < bestS) u += rem[t];
+        c[t]--;
+      }
+      c[x]++;
+      const pri = x >= 20 ? 2 : (x < 2 || x === 2 || x === 10 || x === 11 || x === 19) ? 1 : 0;
+      const score = u * 10 + pri;
+      if (score > bestScore) { bestScore = score; pick = x; }
+    }
+  }
+  c[pick]--;
+}
+function simulateOne(c13, seq, nuki, remainBase) {
+  const c = c13.slice(); const rem = remainBase.slice();
+  for (let k = 0; k < seq.length; k++) {
+    const t = seq[k]; c[t]++; rem[t]--;
+    if (shanten(c) === -1) {
+      const h = c.slice(); h[KITA] += nuki;
+      return tulip(h, rem).e;
+    }
+    discardGreedy(c, rem);
+  }
+  return -1;
+}
+function makeSim(hand, vis, nuki, turns) {
+  const remainBase = new Array(NT);
+  const pool = [];
+  for (let i = 0; i < NT; i++) {
+    remainBase[i] = Math.max(0, 4 - hand[i] - vis[i] - (i === KITA ? nuki : 0));
+    for (let k = 0; k < remainBase[i]; k++) pool.push(i);
+  }
+  const ds = [];
+  for (let d = 0; d < NT; d++) if (hand[d] > 0) ds.push(d);
+  const stats = ds.map(() => ({ win: 0, chip: 0 }));
+  let trials = 0;
+  function trial() {
+    const p = pool.slice(); const n = Math.min(turns, p.length); const seq = [];
+    for (let k = 0; k < n; k++) {
+      const j = k + Math.floor(Math.random() * (p.length - k));
+      const tmp = p[k]; p[k] = p[j]; p[j] = tmp; seq.push(p[k]);
+    }
+    for (let ix = 0; ix < ds.length; ix++) {
+      const c = hand.slice(); c[ds[ix]]--;
+      const r = simulateOne(c, seq, nuki, remainBase);
+      if (r >= 0) { stats[ix].win++; stats[ix].chip += r; }
+    }
+    trials++;
+  }
+  return {
+    ds, stats,
+    get trials() { return trials; },
+    run(total, ms) { const t0 = Date.now(); while (trials < total && Date.now() - t0 < ms) trial(); return trials >= total; }
+  };
+}
+
+if (typeof module !== 'undefined') module.exports = { shanten, shantenNormal, shantenNormalSlow, analyze, tulip, targets, makeSim, NT };
+
+
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const state = {
+    mode: 'hand',
+    hand: new Array(NT).fill(0),
+    vis: new Array(NT).fill(0),
+    dora: -1,
+    nuki: 0,
+    sort: 'eff',
+    sim: null,
+    cache: null
+  };
+  // 例: 初期表示の手牌（例です）
+  [0, 0, 4, 5, 6, 6, 7, 8, 12, 13, 14, 18, 19, 24].forEach((i) => state.hand[i]++);
+  state.dora = 20;
+
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  const visAll = () => { const v = state.vis.slice(); if (state.dora >= 0) v[state.dora]++; return v; };
+  const sig = () => state.hand.join('') + '|' + state.vis.join('') + '|' + state.dora + '|' + state.nuki;
+  function getAnalysis() {
+    const s = sig();
+    if (!state.cache || state.cache.sig !== s) state.cache = { sig: s, r: analyze(state.hand, visAll(), state.nuki) };
+    return state.cache.r;
+  }
+  const used = (i) => state.hand[i] + state.vis[i] + (state.dora === i ? 1 : 0) + (i === KITA ? state.nuki : 0);
+
+  function tileEl(i, cls, withLeft) {
+    const t = tileLabel(i);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tile k-' + t.k + (cls ? ' ' + cls : '');
+    b.dataset.t = i;
+    b.innerHTML = '<span class="n">' + t.n + '</span>' + (t.s ? '<span class="s">' + t.s + '</span>' : '');
+    b.setAttribute('aria-label', t.n + t.s);
+    return b;
+  }
+  function miniEl(i) {
+    const t = tileLabel(i);
+    const s = document.createElement('span');
+    s.className = 'tile mini k-' + t.k;
+    s.innerHTML = '<span class="n">' + t.n + '</span>' + (t.s ? '<span class="s">' + t.s + '</span>' : '');
+    return s;
+  }
+
+  const groups = [[0, 1], [2, 3, 4, 5, 6, 7, 8, 9, 10], [11, 12, 13, 14, 15, 16, 17, 18, 19], [20, 21, 22, 23, 24, 25, 26]];
+  function buildPalette() {
+    const p = $('palette');
+    p.innerHTML = '';
+    groups.forEach((g) => {
+      const row = document.createElement('div');
+      row.className = 'prow';
+      g.forEach((i) => row.appendChild(tileEl(i, 'pal')));
+      p.appendChild(row);
+    });
+  }
+  function refreshPalette() {
+    document.querySelectorAll('#palette .tile').forEach((b) => {
+      const i = +b.dataset.t;
+      const full = used(i) >= 4 || (state.mode === 'hand' && sum(state.hand) >= 14);
+      b.classList.toggle('dis', full && !(state.mode === 'dora'));
+      if (state.mode === 'dora') b.classList.toggle('dis', used(i) >= 4 && state.dora !== i);
+    });
+  }
+  function fillTiles(el, counts, onClick) {
+    el.innerHTML = '';
+    let any = false;
+    for (let i = 0; i < NT; i++) {
+      for (let k = 0; k < counts[i]; k++) {
+        const b = tileEl(i);
+        b.title = 'クリックで外す';
+        b.addEventListener('click', () => onClick(i));
+        el.appendChild(b); any = true;
+      }
+    }
+    if (!any) {
+      const e = document.createElement('span'); e.className = 'empty'; e.textContent = '上の牌を押して追加'; el.appendChild(e);
+    }
+  }
+
+  function renderInputs() {
+    ['hand', 'dora', 'vis'].forEach((m) => $('m-' + m).setAttribute('aria-pressed', String(state.mode === m)));
+    fillTiles($('handTiles'), state.hand, (i) => { state.hand[i]--; update(); });
+    const n = sum(state.hand);
+    const hc = $('handCount');
+    hc.textContent = n + ' / 14枚';
+    hc.className = 'count' + (n === 14 ? ' ok' : '');
+    const dc = new Array(NT).fill(0); if (state.dora >= 0) dc[state.dora] = 1;
+    fillTiles($('doraTiles'), dc, () => { state.dora = -1; update(); });
+    fillTiles($('visTiles'), state.vis, (i) => { state.vis[i]--; update(); });
+    $('nukiOut').textContent = state.nuki;
+    refreshPalette();
+  }
+
+  function chipText(e) { return e == null ? '—' : e.toFixed(2); }
+
+  function renderResults() {
+    const n = sum(state.hand);
+    const v = $('verdict'), tb = $('rows');
+    tb.innerHTML = '';
+    v.className = 'verdict';
+    if (n !== 14) {
+      v.textContent = '手牌を14枚にそろえると、打牌ごとの結果が出ます（いま ' + n + '枚）。';
+      return;
+    }
+    const r = getAnalysis();
+    if (r.agari) {
+      v.className = 'verdict agari';
+      v.innerHTML = 'この手牌は和了形です。メンゼンならチップ期待値は <strong>' + r.agariTulip.e.toFixed(2) + '枚</strong>、最初のめくりで当たる確率は ' + (r.agariTulip.p * 100).toFixed(0) + '%。';
+      return;
+    }
+    const sm = (state.sim && state.sim.sig === sig() && state.sim.trials > 0) ? state.sim : null;
+    const simOf = (d) => {
+      if (!sm) return null;
+      const s = sm.stats[sm.ds.indexOf(d)], n = sm.trials;
+      return { rate: s.win / n, avg: s.win ? s.chip / s.win : null, tot: s.chip / n };
+    };
+    const rows = r.rows.slice();
+    rows.forEach((x) => { x.sim = simOf(x.d); });
+    const minS = Math.min.apply(null, rows.map((x) => x.s));
+    let bestEff = null, bestChip = null;
+    rows.forEach((x) => {
+      if (x.s === minS && (bestEff === null || x.total > bestEff.total)) bestEff = x;
+      if (x.e != null && (bestChip === null || x.e > bestChip.e)) bestChip = x;
+    });
+    let bestTot = null;
+    if (sm) rows.forEach((x) => { if (bestTot === null || x.sim.tot > bestTot.sim.tot) bestTot = x; });
+    if (state.sort === 'tot' && sm) rows.sort((a, b) => b.sim.tot - a.sim.tot);
+    else if (state.sort === 'chip') rows.sort((a, b) => (b.e ?? -1) - (a.e ?? -1) || a.s - b.s);
+    else rows.sort((a, b) => a.s - b.s || b.total - a.total || (b.e ?? -1) - (a.e ?? -1));
+
+    const maxE = Math.max.apply(null, rows.map((x) => x.e || 0)) || 1;
+    const sName = (s) => (s === 0 ? '聴牌' : s + '向聴');
+    const tn = (i) => { const t = tileLabel(i); return t.n + t.s; };
+    v.innerHTML = '牌効率が一番よいのは <strong>' + tn(bestEff.d) + '切り</strong>（' + sName(bestEff.s) + '・受け入れ' + bestEff.total + '枚）。' +
+      (bestChip ? 'チップ期待値が一番高いのは <strong>' + tn(bestChip.d) + '切り</strong>（' + bestChip.e.toFixed(2) + '枚）。' : '') +
+      (bestTot ? ' 総合では <strong>' + tn(bestTot.d) + '切り</strong>（' + bestTot.sim.tot.toFixed(2) + '枚/局）が最良。' : '');
+    rows.forEach((x) => {
+      const tr = document.createElement('tr');
+      if (x === bestEff) tr.classList.add('best-eff');
+      if (x === bestChip) tr.classList.add('best-chip');
+      const td1 = document.createElement('td');
+      td1.appendChild(tileEl(x.d, 'mini-static')); td1.firstChild.disabled = true; td1.firstChild.style.cursor = 'default';
+      const bd = document.createElement('div'); bd.className = 'badges';
+      if (x === bestEff) bd.innerHTML += '<span class="badge eff">牌効率</span>';
+      if (x === bestChip) bd.innerHTML += '<span class="badge chip">チップ</span>';
+      if (x === bestTot) bd.innerHTML += '<span class="badge tot">総合</span>';
+      if (bd.innerHTML) td1.appendChild(bd);
+      const td2 = document.createElement('td'); td2.innerHTML = '<span class="shn">' + sName(x.s) + '</span>';
+      const td3 = document.createElement('td');
+      const total = document.createElement('div'); total.innerHTML = '<strong>' + x.total + '枚</strong>（' + x.uke.length + '種）';
+      const uke = document.createElement('div'); uke.className = 'uke'; uke.style.marginTop = '4px';
+      x.uke.forEach((u) => {
+        const it = document.createElement('span'); it.className = 'uke-item';
+        it.appendChild(miniEl(u.t));
+        it.appendChild(document.createTextNode('×' + u.n));
+        uke.appendChild(it);
+      });
+      td3.appendChild(total); td3.appendChild(uke);
+      const td4 = document.createElement('td'); td4.className = 'num';
+      td4.innerHTML = chipText(x.e) + (x.e != null ? '<span class="chipbar" style="width:' + Math.round((x.e / maxE) * 56) + 'px"></span>' : '');
+      const td5 = document.createElement('td'); td5.className = 'num';
+      const td6 = document.createElement('td'); td6.className = 'num';
+      const td7 = document.createElement('td'); td7.className = 'num';
+      if (x.sim) {
+        td5.textContent = (x.sim.rate * 100).toFixed(1) + '%';
+        td6.textContent = x.sim.avg == null ? '—' : x.sim.avg.toFixed(2);
+        td7.innerHTML = '<strong>' + x.sim.tot.toFixed(3) + '</strong>';
+      } else { td5.textContent = td6.textContent = td7.textContent = '—'; }
+      tr.append(td1, td2, td3, td4, td5, td6, td7);
+      tb.appendChild(tr);
+    });
+  }
+
+  function update() {
+    if (state.sim && state.sim.sig !== sig() && state.sim.running) { state.sim.cancel = true; }
+    renderInputs(); renderResults();
+    if (state.sim && state.sim.sig !== sig()) {
+      $('simStatus').textContent = '手牌や見えている牌が変わりました。もう一度実行してください。';
+      $('runSim').textContent = '和了率をシミュレーション';
+    }
+  }
+
+  buildPalette();
+  $('palette').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.tile'); if (!b) return;
+    const i = +b.dataset.t;
+    if (state.mode === 'dora') {
+      if (used(i) >= 4 && state.dora !== i) return;
+      state.dora = i;
+    } else if (state.mode === 'hand') {
+      if (used(i) >= 4 || sum(state.hand) >= 14) return;
+      state.hand[i]++;
+    } else {
+      if (used(i) >= 4) return;
+      state.vis[i]++;
+    }
+    update();
+  });
+  ['hand', 'dora', 'vis'].forEach((m) => $('m-' + m).addEventListener('click', () => { state.mode = m; update(); }));
+  $('clearHand').addEventListener('click', () => { state.hand.fill(0); update(); });
+  $('clearVis').addEventListener('click', () => { state.vis.fill(0); update(); });
+  $('nukiMinus').addEventListener('click', () => { if (state.nuki > 0) { state.nuki--; update(); } });
+  $('nukiPlus').addEventListener('click', () => { if (used(KITA) < 4) { state.nuki++; update(); } });
+  $('sortSel').addEventListener('change', (e) => { state.sort = e.target.value; renderResults(); });
+  function runSim() {
+    const st = $('simStatus'), btn = $('runSim');
+    if (state.sim && state.sim.running) { state.sim.cancel = true; return; }
+    if (sum(state.hand) !== 14) { st.textContent = '手牌を14枚にそろえてから実行してください。'; return; }
+    const r = getAnalysis();
+    if (r.agari) { st.textContent = 'この手は和了形なので、シミュレーションは不要です。'; return; }
+    const turns = Math.max(1, Math.min(18, parseInt($('turns').value, 10) || 8));
+    $('turns').value = turns;
+    const total = parseInt($('trials').value, 10);
+    const sim = makeSim(state.hand.slice(), visAll(), state.nuki, turns);
+    sim.sig = sig(); sim.running = true; sim.cancel = false;
+    state.sim = sim;
+    btn.textContent = '止める';
+    const step = () => {
+      if (state.sim !== sim) { return; }
+      const done = sim.run(total, 40);
+      st.textContent = '計算中… ' + sim.trials + ' / ' + total + '回';
+      renderResults();
+      if (!done && !sim.cancel) { setTimeout(step, 0); return; }
+      sim.running = false;
+      btn.textContent = '和了率をシミュレーション';
+      st.textContent = (done ? '完了：' : '途中で停止：') + sim.trials + '回試行（残りツモ' + turns + '回）';
+    };
+    step();
+  }
+  $('runSim').addEventListener('click', runSim);
+  update();
+})();
+</script>
+
+</body>
+</html>
