@@ -242,7 +242,7 @@ body { margin: 0; }
             <label>席 <select id="seat"><option value="ko" selected>子</option><option value="oya">親</option></select></label>
             <label>場風 <select id="bakaze"><option value="20" selected>東</option><option value="21">南</option></select></label>
             <label>自風 <select id="jikaze"><option value="20">東</option><option value="21" selected>南</option><option value="22">西</option></select></label>
-            <label><input type="checkbox" id="riichi" checked> リーチ（和了時に1翻）</label>
+            <label><input type="checkbox" id="riichi" checked> リーチ（聴牌したらリーチ・和了時に1翻）</label>
             <label><input type="checkbox" id="kazoeShugi"> 数え役満も役満祝儀にする</label>
             <label>残りツモ <input type="number" id="turns" min="1" max="18" value="8" inputmode="numeric"> 回</label>
             <label>試行 <select id="trials"><option value="500">500回</option><option value="1000" selected>1000回</option><option value="3000">3000回</option></select></label>
@@ -269,7 +269,7 @@ body { margin: 0; }
             <li>チップ期待値は、受け入れ牌をそれぞれ引いた後の手牌でめくりを行った場合の期待枚数を、受け入れ枚数で重み付けした平均です（1人分）。聴牌になる切り方では、和了牌を引いた形そのものの値になります。</li>
             <li>めくりは「該当牌が手牌にあれば、その枚数分のチップを得て続行、なければ終了」です。対象は表示牌の±1（1と9、東南西北は循環、三元牌は3種すべて）。1萬・9萬がめくれたときは、手牌の萬子1枚を2枚として数えます。各めくりは、見えていない牌から同じ確率で出る近似です。</li>
             <li>シミュレーションは、見えていない牌からランダムに引く試行を繰り返します。毎ツモで和了していなければ、向聴数が最小になる牌を切り（同じなら受け入れ枚数が多いほう）、残りツモ回数のうちにツモ和了できた割合を和了率とします。他家の捨て牌・他家の和了・鳴き・リーチ判断は入れていません。全部の切り方で同じツモ順を使って比べています。</li>
-            <li>点数はメンゼンのツモ和了だけを計算します。一般的な役に、4枚使い七対子（1組=4翻、2組=8翻、3組=12翻。七対子の2翻を含む合計）を加えています。符計算あり、ツモ損あり、切り上げ満貫あり、数え役満あり。リーチは和了時の1翻として扱い、一発・裏ドラは入れていません。</li>
+            <li>点数はメンゼンのツモ和了だけを計算します。一般的な役に、4枚使い七対子（1組=4翻、2組=8翻、3組=12翻。七対子の2翻を含む合計）を加えています。符計算あり、ツモ損あり、切り上げ満貫あり、数え役満あり。リーチにチェックがあるときは、最初に聴牌になった時点でリーチして、その後は待ちを変えずにツモ切りします（和了時に1翻）。一発・裏ドラは入れていません。</li>
             <li>ドラは、表示牌の次の牌、抜き北（1枚1翻）、赤ドラ（左で選んだ赤5筒・赤5索）を数えます。赤は、その5が手牌に残っている間だけ数え、切るときは赤でない5を先に切る前提です。1萬の表示牌は9萬、9萬の表示牌は1萬がドラです。</li>
             <li>チップは、チューリップ、赤1枚につき1枚、役満祝儀（ツモ10枚オール）を数えます。北を4枚抜いて上がった場合も役満祝儀です。ツモでは相手2人から受け取ります。ロンは計算に入っていません（ツモ和了だけです）。</li>
             <li>総合は、点数にチップ枚数×入力した点数を足して、全試行で平均した値です。</li>
@@ -689,6 +689,8 @@ function discardGreedy(c, rem) {
 function simulateOne(c13, seq, nuki, remainBase, ctx, firstDiscard, ctxRon) {
   const c = c13.slice(); const rem = remainBase.slice();
   const disc = new Uint8Array(NT); disc[firstDiscard] = 1; // 自分の捨て牌（フリテン判定用）
+  // リーチあり: 最初に聴牌になった時点でリーチし、以後は待ちを変えずにツモ切り
+  let locked = !!ctx.riichi && shanten(c) === 0;
   const per = ctx.useRon ? 3 : 1;
   const turns = Math.floor(seq.length / per);
   for (let k = 0; k < turns; k++) {
@@ -731,7 +733,11 @@ function simulateOne(c13, seq, nuki, remainBase, ctx, firstDiscard, ctxRon) {
       // ツモは相手2人から。役満祝儀は10枚オール（計20枚）
       return { chips: (e1 + redHeld) * ctx.payers + (yk ? 20 : 0), pts: sc.points, ron: false };
     }
-    disc[discardGreedy(c, rem)] = 1;
+    if (locked) { c[t]--; disc[t] = 1; }
+    else {
+      disc[discardGreedy(c, rem)] = 1;
+      if (ctx.riichi && shanten(c) === 0) locked = true;
+    }
   }
   return null;
 }
