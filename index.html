@@ -1,9 +1,6 @@
-<!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>チューリップ何切る</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@700&display=swap">
@@ -179,11 +176,8 @@ details.notes ul { margin: 8px 0 0; padding-left: 1.2em; display: flex; flex-dir
   .uke { margin-top: 2px; }
   .rowhead { display: grid; grid-template-areas: "tile shn uke chip rate avg tot"; padding: 0 12px 0 15px; font-size: 11px; color: var(--ink-2); letter-spacing: .04em; }
 }
-body { margin: 0; }
-[hidden] { display: none !important; }
 </style>
-</head>
-<body>
+
 <div class="wrap" id="app" data-view="input">
   <header>
     <h1>チューリップ<span>何切る</span></h1>
@@ -269,7 +263,7 @@ body { margin: 0; }
             <li>チップ期待値は、受け入れ牌をそれぞれ引いた後の手牌でめくりを行った場合の期待枚数を、受け入れ枚数で重み付けした平均です（1人分）。聴牌になる切り方では、和了牌を引いた形そのものの値になります。</li>
             <li>めくりは「該当牌が手牌にあれば、その枚数分のチップを得て続行、なければ終了」です。対象は表示牌の±1（1と9、東南西北は循環、三元牌は3種すべて）。1萬・9萬がめくれたときは、手牌の萬子1枚を2枚として数えます。各めくりは、見えていない牌から同じ確率で出る近似です。</li>
             <li>シミュレーションは、見えていない牌からランダムに引く試行を繰り返します。毎ツモで和了していなければ、向聴数が最小になる牌を切り（同じなら受け入れ枚数が多いほう）、残りツモ回数のうちにツモ和了できた割合を和了率とします。他家の捨て牌・他家の和了・鳴き・リーチ判断は入れていません。全部の切り方で同じツモ順を使って比べています。</li>
-            <li>点数はメンゼンのツモ和了だけを計算します。一般的な役に、4枚使い七対子（1組=4翻、2組=8翻、3組=12翻。七対子の2翻を含む合計）を加えています。符計算あり、ツモ損あり、切り上げ満貫あり、数え役満あり。リーチにチェックがあるときは、最初に聴牌になった時点でリーチして、その後は待ちを変えずにツモ切りします（和了時に1翻）。一発・裏ドラは入れていません。</li>
+            <li>点数はメンゼンのツモ和了だけを計算します。一般的な役に、4枚使い七対子（1組=4翻、2組=8翻、3組=12翻。七対子の2翻を含む合計）を加えています。符計算あり、ツモ損あり、切り上げ満貫あり、数え役満あり。リーチにチェックがあるときは、最初に聴牌になった時点でリーチして、その後は待ちを変えずにツモ切りします（和了時に1翻）。リーチで和了したときは、見えていない牌から裏ドラ表示牌を1枚ランダムに引いて、手牌と抜き北の該当枚数を1枚1翻・1枚1チップで足します。一発は入れていません。</li>
             <li>ドラは、表示牌の次の牌、抜き北（1枚1翻）、赤ドラ（左で選んだ赤5筒・赤5索）を数えます。赤は、その5が手牌に残っている間だけ数え、切るときは赤でない5を先に切る前提です。1萬の表示牌は9萬、9萬の表示牌は1萬がドラです。</li>
             <li>チップは、チューリップ、赤1枚につき1枚、役満祝儀（ツモ10枚オール）を数えます。北を4枚抜いて上がった場合も役満祝儀です。ツモでは相手2人から受け取ります。ロンは計算に入っていません（ツモ和了だけです）。</li>
             <li>総合は、点数にチップ枚数×入力した点数を足して、全試行で平均した値です。</li>
@@ -523,7 +517,7 @@ function calcPoints(han, fu, yk, dealer, ron) {
 function scoreHand(c, win, ctx) {
   const types = [];
   for (let i = 0; i < NT; i++) if (c[i] > 0) types.push(i);
-  const doraHan = (ctx.doraTile >= 0 ? c[ctx.doraTile] + (ctx.doraTile === KITA ? ctx.nuki : 0) : 0) + ctx.nuki + ctx.red;
+  const doraHan = (ctx.doraTile >= 0 ? c[ctx.doraTile] + (ctx.doraTile === KITA ? ctx.nuki : 0) : 0) + ctx.nuki + ctx.red + (ctx.uraHan || 0);
   const baseHan = (ctx.riichi ? 1 : 0) + (ctx.ron ? 0 : 1); // リーチ + 門前清自摸和（ロンなら無し）
   const allHonor = types.every((i) => SUITOF(i) === 3);
   const allTerm = types.every(isTermT);
@@ -686,7 +680,7 @@ function discardGreedy(c, rem) {
   c[pick]--;
   return pick;
 }
-function simulateOne(c13, seq, nuki, remainBase, ctx, firstDiscard, ctxRon) {
+function simulateOne(c13, seq, nuki, remainBase, ctx, firstDiscard, ctxRon, uraU) {
   const c = c13.slice(); const rem = remainBase.slice();
   const disc = new Uint8Array(NT); disc[firstDiscard] = 1; // 自分の捨て牌（フリテン判定用）
   // リーチあり: 最初に聴牌になった時点でリーチし、以後は待ちを変えずにツモ切り
@@ -728,10 +722,19 @@ function simulateOne(c13, seq, nuki, remainBase, ctx, firstDiscard, ctxRon) {
       const e1 = tulip(h, rem).e;
       // 赤ドラは、その5が手牌に残っている分だけ数える（切るときは赤でない5を先に切る前提）
       const redHeld = Math.min(ctx.redP || 0, c[6]) + Math.min(ctx.redS || 0, c[15]);
-      const sc = scoreHand(c, t, Object.assign({}, ctx, { red: redHeld }));
+      // 裏ドラ（リーチ時のみ）: 見えていない牌から裏表示牌を1枚引く（試行内で共通の乱数uraUを使う）
+      let uraHan = 0;
+      if (ctx.riichi && ctx.ura !== false) {
+        let tot = 0; for (let i = 0; i < NT; i++) tot += Math.max(0, rem[i]);
+        let r = uraU * tot, ind = 0;
+        for (let i = 0; i < NT; i++) { const v = Math.max(0, rem[i]); if (r < v) { ind = i; break; } r -= v; }
+        const ud = doraOf(ind);
+        uraHan = c[ud] + (ud === KITA ? nuki : 0);
+      }
+      const sc = scoreHand(c, t, Object.assign({}, ctx, { red: redHeld, uraHan }));
       const yk = sc.yakuman > 0 || (ctx.kazoeShugi && sc.kazoe) || nuki === 4;
-      // ツモは相手2人から。役満祝儀は10枚オール（計20枚）
-      return { chips: (e1 + redHeld) * ctx.payers + (yk ? 20 : 0), pts: sc.points, ron: false };
+      // ツモは相手2人から。役満祝儀は10枚オール（計20枚）。赤・裏ドラは1枚1チップ
+      return { chips: (e1 + redHeld + uraHan) * ctx.payers + (yk ? 20 : 0), pts: sc.points, ron: false };
     }
     if (locked) { c[t]--; disc[t] = 1; }
     else {
@@ -760,9 +763,10 @@ function makeSim(hand, vis, nuki, turns, ctx) {
       const j = k + Math.floor(Math.random() * (p.length - k));
       const tmp = p[k]; p[k] = p[j]; p[j] = tmp; seq.push(p[k]);
     }
+    const uraU = Math.random();
     for (let ix = 0; ix < ds.length; ix++) {
       const c = hand.slice(); c[ds[ix]]--;
-      const r = simulateOne(c, seq, nuki, remainBase, ctx, ds[ix], ctxRon);
+      const r = simulateOne(c, seq, nuki, remainBase, ctx, ds[ix], ctxRon, uraU);
       if (r) { stats[ix].win++; if (r.ron) stats[ix].ron++; stats[ix].chip += r.chips; stats[ix].pts += r.pts; }
     }
     trials++;
@@ -1111,5 +1115,4 @@ if (typeof module !== 'undefined') module.exports = { scoreHand, calcPoints, dor
 })();
 </script>
 
-</body>
-</html>
+</body></html>
